@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Parking Management System</title>
+    <style>
+        body {margin: 30px; }
+        input, button { margin: 5px; padding: 6px; }
+        table { border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid black; padding: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Campus Parking Management System</h1>
+
+    <form id="carForm">
+        <input id="plateNumber" placeholder="Plate Number" required>
+        <input id="owner" placeholder="Owner" required>
+        <input id="vehicleType" placeholder="Vehicle Type" required>
+        <input id="color" placeholder="Color" required>
+        <button type="submit">Add Record</button>
+    </form>
+
+    <button id="loadCars" type="button" onclick="loadCars()">Load Cars</button>
+    <input id="searchId" type="number" placeholder="Car ID">
+    <button type="button" onclick="searchCar()">Search</button>
+
+    <table id="carTable" hidden>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Plate Number</th>
+                <th>Owner</th>
+                <th>Vehicle Type</th>
+                <th>Color</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="carList"></tbody>
+    </table>
+
+    <script>
+        const form = document.getElementById('carForm');
+        const carList = document.getElementById('carList');
+
+        async function loadCars() {
+            const response = await fetch("/api/cars");
+            const cars = await response.json();
+            const list = document.getElementById("carList");
+
+            list.innerHTML = "";
+            cars.forEach(car => {
+                const row = document.createElement('tr');
+                row.innerHTML =
+                    "<td>" + car.id + "</td>" +
+                    "<td>" + car.plateNumber + "</td>" +
+                    "<td>" + car.owner + "</td>" +
+                    "<td>" + car.vehicleType + "</td>" +
+                    "<td>" + car.color + "</td>";
+                addDeleteButton(row, car.id);
+                list.appendChild(row);
+            });
+
+            if (cars.length === 0) list.innerHTML = "<tr><td colspan='6'>No cars found</td></tr>";
+            document.getElementById("carTable").hidden = false;
+        }
+
+        function addDeleteButton(row, id) {
+            const cell = document.createElement("td");
+            const button = document.createElement("button");
+            button.textContent = "Delete";
+            button.onclick = async () => {
+                const response = await fetch("/api/cars/" + id, { method: "DELETE" });
+                if (response.ok) {
+                    loadCars();
+                } else {
+                    alert("Could not delete the car.");
+                }
+            };
+            cell.appendChild(button);
+            row.appendChild(cell);
+        }
+
+        async function searchCar() {
+            const id = document.getElementById("searchId").value;
+            const response = await fetch("/api/cars/" + id);
+            const list = document.getElementById("carList");
+
+            list.innerHTML = "";
+            if (!response.ok) {
+                list.innerHTML = "<tr><td colspan='6'>Car not found</td></tr>";
+            } else {
+                const car = await response.json();
+                const row = document.createElement("tr");
+                row.innerHTML =
+                    "<td>" + car.id + "</td>" +
+                    "<td>" + car.plateNumber + "</td>" +
+                    "<td>" + car.owner + "</td>" +
+                    "<td>" + car.vehicleType + "</td>" +
+                    "<td>" + car.color + "</td>";
+                addDeleteButton(row, car.id);
+                list.appendChild(row);
+            }
+
+            document.getElementById("carTable").hidden = false;
+        }
+
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+
+            const car = {
+                plateNumber: document.getElementById('plateNumber').value,
+                owner: document.getElementById('owner').value,
+                vehicleType: document.getElementById('vehicleType').value,
+                color: document.getElementById('color').value
+            };
+
+            const response = await fetch('/api/cars', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(car)
+            });
+
+            if (response.ok) {
+                form.reset();
+            } else {
+                alert('Could not add the car record.');
+            }
+        });
+    </script>
+</body>
+</html>
+
